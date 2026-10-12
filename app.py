@@ -1,18 +1,11 @@
 from flask import Flask, render_template, request, redirect, session
 import sqlite3
 
-app = Flask(__name__)
-
-# Secret key for login session
+app = Flask(__name__, template_folder=".")
 app.secret_key = "smart-manufacturing-secret-key"
 
 
-# =========================
-# DATABASE
-# =========================
-
 def create_database():
-
     connection = sqlite3.connect("manufacturing.db")
     cursor = connection.cursor()
 
@@ -30,33 +23,23 @@ def create_database():
     connection.close()
 
 
-# =========================
-# HOME
-# =========================
+# Create database when the application starts
+create_database()
+
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-# =========================
-# PRODUCTS
-# =========================
-
 @app.route("/products")
 def products():
     return render_template("products.html")
 
 
-# =========================
-# PRODUCT DETAILS
-# =========================
-
 @app.route("/product/<product_name>")
 def product_details(product_name):
-
     products_data = {
-
         "machine-parts": {
             "name": "Machine Parts",
             "icon": "⚙️",
@@ -69,7 +52,6 @@ def product_details(product_name):
                 "Suitable for different machines"
             ]
         },
-
         "steel-components": {
             "name": "Steel Components",
             "icon": "🔩",
@@ -82,7 +64,6 @@ def product_details(product_name):
                 "Long-lasting performance"
             ]
         },
-
         "metal-sheets": {
             "name": "Metal Sheets",
             "icon": "🏗️",
@@ -95,7 +76,6 @@ def product_details(product_name):
                 "Durable and reliable"
             ]
         },
-
         "industrial-tools": {
             "name": "Industrial Tools",
             "icon": "🔧",
@@ -115,28 +95,16 @@ def product_details(product_name):
     if product is None:
         return "Product Not Found", 404
 
-    return render_template(
-        "product_details.html",
-        product=product
-    )
+    return render_template("product_details.html", product=product)
 
-
-# =========================
-# PRODUCTION
-# =========================
 
 @app.route("/production")
 def production():
     return render_template("production.html")
 
 
-# =========================
-# CONTACT
-# =========================
-
 @app.route("/contact", methods=["GET", "POST"])
 def contact():
-
     if request.method == "POST":
 
         name = request.form["name"]
@@ -156,14 +124,6 @@ def contact():
         connection.commit()
         connection.close()
 
-        print("\n========== CONTACT MESSAGE ==========")
-        print("Name:", name)
-        print("Email:", email)
-        print("Subject:", subject)
-        print("Message:", message)
-        print("Saved to database successfully!")
-        print("=====================================\n")
-
         return render_template(
             "contact.html",
             success="Your message has been sent successfully!"
@@ -171,10 +131,6 @@ def contact():
 
     return render_template("contact.html")
 
-
-# =========================
-# ADMIN LOGIN
-# =========================
 
 @app.route("/admin-login", methods=["GET", "POST"])
 def admin_login():
@@ -184,11 +140,8 @@ def admin_login():
         username = request.form["username"]
         password = request.form["password"]
 
-        # Demo admin credentials
         if username == "admin" and password == "admin123":
-
             session["admin_logged_in"] = True
-
             return redirect("/admin")
 
         return render_template(
@@ -199,31 +152,19 @@ def admin_login():
     return render_template("admin_login.html")
 
 
-# =========================
-# ADMIN DASHBOARD
-# =========================
-
 @app.route("/admin")
 def admin():
 
-    # Check login
     if not session.get("admin_logged_in"):
         return redirect("/admin-login")
 
     connection = sqlite3.connect("manufacturing.db")
     cursor = connection.cursor()
 
-    cursor.execute("""
-        SELECT * FROM messages
-        ORDER BY id DESC
-    """)
-
+    cursor.execute("SELECT * FROM messages ORDER BY id DESC")
     messages = cursor.fetchall()
 
-    cursor.execute("""
-        SELECT COUNT(*) FROM messages
-    """)
-
+    cursor.execute("SELECT COUNT(*) FROM messages")
     total_messages = cursor.fetchone()[0]
 
     connection.close()
@@ -234,10 +175,6 @@ def admin():
         total_messages=total_messages
     )
 
-
-# =========================
-# DELETE MESSAGE
-# =========================
 
 @app.route("/delete-message/<int:message_id>")
 def delete_message(message_id):
@@ -259,10 +196,6 @@ def delete_message(message_id):
     return redirect("/admin")
 
 
-# =========================
-# ADMIN LOGOUT
-# =========================
-
 @app.route("/admin-logout")
 def admin_logout():
 
@@ -271,12 +204,5 @@ def admin_logout():
     return redirect("/admin-login")
 
 
-# =========================
-# RUN APPLICATION
-# =========================
-
 if __name__ == "__main__":
-
-    create_database()
-
     app.run(debug=True)
